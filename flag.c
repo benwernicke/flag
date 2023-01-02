@@ -1,182 +1,154 @@
 #include "flag.h"
 
-// implementaion
-
-typedef enum {
-    IDENTIFIER_LONG,
-    IDENTIFIER_SHORT,
-    NO_FLAG,
-} identifier_type_t;
-
 static char** arg_iter = NULL;
 static char** arg_iter_end = NULL;
-static int error = 0;
-static char* error_pos = NULL;
 
-static inline identifier_type_t decide_case(char* arg)
+static inline flag_t* find_flag_short_identifier(
+    char iden, flag_t* flags, uint32_t flags_len)
 {
-    if (arg[0] == '-') {
-        return arg[1] == '-' ? IDENTIFIER_LONG : IDENTIFIER_SHORT;
+    flag_t* iter = flags;
+    flag_t* const end = flags + flags_len;
+    for (; iter != end; ++iter) {
+        if (iter->short_identifier == iden) {
+            return iter;
+        }
     }
-    return NO_FLAG;
+    return NULL;
+}
+
+static inline flag_t* find_flag_long_identifier(
+    char* iden, flag_t* flags, uint32_t flags_len)
+{
+    flag_t* iter = flags;
+    flag_t* const end = flags + flags_len;
+    for (; iter != end; ++iter) {
+        if (strcmp(iter->long_identifier, iden) == 0) {
+            return iter;
+        }
+    }
+    return NULL;
 }
 
 static inline char* get_eq_sign(char* s)
 {
     for (; *s; ++s) {
-        is(*s == '=') { return s; }
+        if (*s == '=') {
+            return s;
+        }
     }
     return NULL;
 }
 
-static inline void parse_long_identifier(flags_t* flags, uint32_t flags_len)
+static inline flag_error_t parse_flag_long_identifier(
+    flag_t* flags, uint32_t flags_len)
 {
-    flag_t* f = NULL;
+    char* eq_sign = get_eq_sign(*arg_iter + 2);
 
-    char* eq_sign = get_eq_sign(*arg_iter);
-
-    // if '=' is found replace it by null terminator for strcmp
     if (eq_sign) {
         *eq_sign = 0;
     }
 
-    // find corresponding flag
-    {
-        flag_t* iter = flags;
-        flag_t* const end = flags + flags_len;
+    flag_t* f = find_flag_long_identifier(*arg_iter + 2, flags, flags_len);
 
-        // loop will break if f is set
-        for (; f && iter != end; ++iter) {
-            if (strcmp(iter->long_identifier, *arg_iter + 2) == 0) {
-                f = iter;
-            }
-        }
-
-        // replace null terminator with '='
-        if (eq_sign) {
-            *eq_sign = '=';
-        }
-
-        // return error if no corresping flag is found
-        if (!f) {
-            error = FLAG_ERROR_UNKNOWN;
-            return;
-        }
+    if (eq_sign) {
+        *eq_sign = '=';
     }
 
-    // parse flag arguments if necessary
     switch (f->type) {
-
     case FLAG_BOOL: {
         if (eq_sign) {
             eq_sign += 1;
             if (strcmp(eq_sign, "true") == 0) {
                 *(bool*)f->target = 1;
-            } else if (strcmp(eq_sign, "false") == 0) {
-                *(bool*)f->target = 0;
             } else if (strcmp(eq_sign, "1") == 0) {
                 *(bool*)f->target = 1;
+            } else if (strcmp(eq_sign, "false") == 0) {
+                *(bool*)f->target = 0;
             } else if (strcmp(eq_sign, "0") == 0) {
                 *(bool*)f->target = 0;
             } else {
-                error = FLAG_ERROR_NO_MATCHING_ARG;
-                return;
+                return FLAG_ERROR_ARG_UNKNOWN;
             }
         } else {
             *(bool*)f->target = 1;
         }
     } break;
-
     case FLAG_STR: {
         if (eq_sign) {
-            eq_sign += 1;
-            *(char**)f->target = eq_sign;
-        } else {
+            *(char**)f->target = eq_sign + 1;
+        } else if (*(arg_iter + 1)) {
             arg_iter += 1;
-            if (*arg_iter) {
-                *(char**)f->target = arg_iter;
-            } else {
-                error = FLAG_ERROR_NO_MATCHING_ARG;
-                return;
-            }
+            *(char**)f->target = *arg_iter;
+        } else {
+            return FLAG_ERROR_ARG_UNKNOWN;
         }
     } break;
     }
+
+    return FLAG_ERROR_SUCCESS;
 }
 
-static inline void parse_short_identifier(flags_t* flags, uint32_t flags_len)
+static inline flag_error_t parse_flag_short_identifier(
+    flag_t* flags, uint32_t flags_len)
 {
-    char* eq_sign = get_eq_sign(*arg_iter);
-
-    // replace '=' with '\0' for strlen
+    flag_error_t e = FLAG_ERROR_SUCCESS;
+    char* eq_sign = get_eq_sign(*arg_iter + 1);
     if (eq_sign) {
         *eq_sign = 0;
     }
 
-    uint32_t is_multi = strlen(*arg_iter + 1) != 1;
+    {
+        char* iter = *arg_iter + 1;
+        for (; *iter; ++iter) {
 
-    if (is_multi) {
+            flag_t* f = find_flag_short_identifier(*iter, flags, flags_len);
 
-    } else {
-        flag_t* f = NULL;
-
-        // find flag
-        {
-            flag_t* iter = flags;
-            flag_t* const end;
-            for (; f && iter != end; ++iter) {
-                if (f->short_identifier == (*arg_iter)[1]) {
-                    f = iter;
-                }
+            if (!f) {
+                e = FLAG_ERROR_FLAG_UNKNOWN;
+                goto end;
             }
-        }
 
-        if (eq_sign) {
-            *eq_sign = '=';
-        }
-
-        if (!f) {
-            error = FLAG_ERROR_UNKNOWN;
-            return;
-        }
-
-        switch (f->type) {
-        case FLAG_BOOL: {
-            if (eq_sign) {
-                eq_sign += 1;
-                if (strcmp(eq_sign, "true") == 0) {
-                    *(bool*)f->target = 1;
-                } else if (strcmp(eq_sign, "false") == 0) {
-                    *(bool*)f->target = 0;
-                } else if (strcmp(eq_sign, "1") == 0) {
-                    *(bool*)f->target = 1;
-                } else if (strcmp(eq_sign, "0") == 0) {
-                    *(bool*)f->target = 0;
+            switch (f->type) {
+            case FLAG_BOOL: {
+                if (eq_sign) {
+                    char* a = eq_sign + 1;
+                    if (strcmp(a, "true") == 0) {
+                        *(bool*)f->target = 1;
+                    } else if (strcmp(a, "1") == 0) {
+                        *(bool*)f->target = 1;
+                    } else if (strcmp(a, "false") == 0) {
+                        *(bool*)f->target = 0;
+                    } else if (strcmp(a, "0") == 0) {
+                        *(bool*)f->target = 0;
+                    } else {
+                        e = FLAG_ERROR_ARG_UNKNOWN;
+                        goto end;
+                    }
                 } else {
-                    error = FLAG_ERROR_ARG_UNKNOWN;
-                    return;
+                    *(bool*)f->target = 1;
                 }
-            } else {
-                *(bool*)f->target = 1;
-            }
-        } break;
-        case FLAG_STR: {
-            if (eq_sign) {
-                eq_sign += 1;
-                *(char**)f->target = *eq_sign;
-            } else {
-                arg_iter += 1;
-
-                if (!*arg_iter) {
-                    error = FLAG_ERROR_ARG_UNKNOWN;
-                    return;
+            } break;
+            case FLAG_STR: {
+                if (eq_sign) {
+                    *(char**)f->target = eq_sign + 1;
+                } else if (*(arg_iter + 1)) {
+                    arg_iter += 1;
+                    *(char**)f->target = *arg_iter;
+                } else {
+                    e = FLAG_ERROR_ARG_UNKNOWN;
+                    goto end;
                 }
-
-                *(char**)f->target = *arg_iter;
+            } break;
             }
-        } break;
         }
     }
+
+end:
+    if (eq_sign) {
+        *eq_sign = '=';
+    }
+
+    return e;
 }
 
 int flag_parse(const int argc, char** argv, flag_t* flags, uint32_t flags_len,
@@ -190,26 +162,44 @@ int flag_parse(const int argc, char** argv, flag_t* flags, uint32_t flags_len,
     arg_iter = argv;
     arg_iter_end = argv + argc;
 
+    flag_error_t e = FLAG_ERROR_SUCCESS;
+
     for (; arg_iter != arg_iter_end; ++arg_iter) {
-
-        switch (identifier_type(*arg_iter)) {
-        case IDENTIFIER_LONG: {
-            parse_long_identifier(flags, flag_len);
-        } break;
-        case IDENTIFIER_SHORT: {
-            parse_short_identifier(flags, flag_len);
-        } break;
-        case NO_FLAG: {
-            if (*dest_argc) {
-                (*dest_argv)[*dest_argc++] = *arg_iter;
+        if ((*arg_iter)[0] == '-' && (*arg_iter)[1] == '-') {
+            e = parse_flag_long_identifier(flags, flags_len);
+        } else if ((*arg_iter)[0] == '-') {
+            e = parse_flag_short_identifier(flags, flags_len);
+        } else {
+            if (dest_argc) {
+                (*dest_argv)[*dest_argc] = *arg_iter;
+                *dest_argc += 1;
             }
-        } break;
         }
-
-        if (error) {
-            return error;
+        if (e) {
+            return e;
         }
     }
+
+    return e;
 }
 
-void flag_pint_usage(FILE* stream, char* general_usage);
+void flag_print_usage(
+    FILE* stream, char* general_usage, flag_t* flags, uint32_t flags_len)
+{
+    fprintf(stream, "%s\n\n", general_usage);
+    flag_t* iter = flags;
+    flag_t* const end = flags + flags_len;
+    for (; iter != end; ++iter) {
+        if (iter->short_identifier && iter->long_identifier) {
+            fprintf(stream, "-%c/--%s\t\t%s\n", iter->short_identifier,
+                iter->long_identifier, iter->description);
+        } else if (iter->short_identifier) {
+            fprintf(stream, "-%c\t\t%s\n", iter->short_identifier,
+                iter->description);
+        } else {
+            fprintf(stream, "--%s\t\t%s\n", iter->long_identifier,
+                iter->description);
+        }
+    }
+    fprintf(stream, "\n\n");
+}

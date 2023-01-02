@@ -1,3 +1,7 @@
+build/
+out
+beaver
+
 # Prerequisites
 *.d
 
