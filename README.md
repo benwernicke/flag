@@ -19,7 +19,7 @@ Note: `dest_argv` must be an array which is at least big enough to hold entire
 
 Flags are defined like this:
 
-```
+```c
 flag_t flags[] = {
     {
         .short_identifier = 'h',    // can be '\0' if not needed
@@ -35,7 +35,7 @@ If `flag_parse()`  encounters an error, either a found flag is not present in
 the flags array (= `FLAG_ERROR_FLAG_UNKNOWN`) or a flag which requires an
 argument but doesnt have an argument (= `FLAG_ERROR_ARG_UNKNOWN`)
 
-```
+```c
 void flag_print_usage(
     FILE* stream, char* general_usage, flag_t* flags, uint32_t flags_len);
 ```
