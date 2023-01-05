@@ -162,6 +162,10 @@ int flag_parse(const int argc, char** argv, flag_t* flags, uint32_t flags_len,
     arg_iter = argv;
     arg_iter_end = argv + argc;
 
+    if (dest_argc) {
+        *dest_argc = 0;
+    }
+
     flag_error_t e = FLAG_ERROR_SUCCESS;
 
     for (; arg_iter != arg_iter_end; ++arg_iter) {
