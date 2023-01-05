@@ -33,4 +33,6 @@ int flag_parse(const int argc, char** argv, flag_t* flags, uint32_t flags_len,
 void flag_print_usage(
     FILE* stream, char* general_usage, flag_t* flags, uint32_t flags_len);
 
+char** flag_error_position(void);
+
 #endif

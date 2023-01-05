@@ -203,3 +203,5 @@ void flag_print_usage(
     }
     fprintf(stream, "\n\n");
 }
+
+char** flag_error_position(void) { return arg_iter; }
