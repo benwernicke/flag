@@ -45,5 +45,3 @@ Prints the `general_usage` and all flag descriptions to `stream`
 ## TODO
 - add a options variable to `flag_parse` and `flag_print_usage` to further
   sepcify how the functions behave under what input
-- add a `char** flag_error_position();` function which will return the position
-  of the string that caused an error in `flag_parse`
