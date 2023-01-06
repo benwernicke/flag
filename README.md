@@ -21,15 +21,15 @@ Flags are defined like this:
 
 ```c
 
-flag_t flags[] = {
-    {
-        .short_identifier = 'h',    // can be '\0' if not needed
-        .long_identifier = "help",  // can be NULL if not needed
-        .description = "print this page and exit", // cannot be NULL
-        .target = &flag_help,       // cannot be null must be of type according to .type
-        .type = FLAG_BOOL,          // type of the flag: either FLAG_BOOL or FLAG_STR
-    },
-};
+    flag_t flags[] = {
+        {
+            .short_identifier = 'h',    // can be '\0' if not needed
+            .long_identifier = "help",  // can be NULL if not needed
+            .description = "print this page and exit", // cannot be NULL
+            .target = &flag_help,       // cannot be null must be of type according to .type
+            .type = FLAG_BOOL,          // type of the flag: either FLAG_BOOL or FLAG_STR
+        },
+    };
 
 ```
 
@@ -43,6 +43,19 @@ void flag_print_usage(
 ```
 
 Prints the `general_usage` and all flag descriptions to `stream`
+
+If `flag_parse()` returns an error we can get the pointer to the argv member
+which caused this error by calling:
+
+```c
+char** flag_error_position(void);
+```
+
+We can format the error by calling:
+
+```c
+const char* flag_error_format(int error);
+```
 
 ## TODO
 - add a options variable to `flag_parse` and `flag_print_usage` to further

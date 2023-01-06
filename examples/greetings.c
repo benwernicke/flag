@@ -38,7 +38,8 @@ int main(int argc, char** argv)
     flag_error_t e = flag_parse(argc, argv, flags, flags_len, NULL, NULL);
 
     if (e) {
-        fprintf(stderr, "ERROR: flag error\n");
+        fprintf(stderr, "Error: '%s' at: %s\n", flag_error_format(e),
+            *flag_error_position());
         exit(1);
     }
 
