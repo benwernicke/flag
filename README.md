@@ -3,7 +3,7 @@ This is a very simple flag parser
 
 ## Documentation
 
-```
+```c
 int flag_parse(const int argc, char** argv, flag_t* flags, uint32_t flags_len,
         int* dest_argc, char*** dest_argv);
 
@@ -20,6 +20,7 @@ Note: `dest_argv` must be an array which is at least big enough to hold entire
 Flags are defined like this:
 
 ```c
+
 flag_t flags[] = {
     {
         .short_identifier = 'h',    // can be '\0' if not needed
@@ -29,6 +30,7 @@ flag_t flags[] = {
         .type = FLAG_BOOL,          // type of the flag: either FLAG_BOOL or FLAG_STR
     },
 };
+
 ```
 
 If `flag_parse()`  encounters an error, either a found flag is not present in
