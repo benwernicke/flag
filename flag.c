@@ -199,13 +199,13 @@ void flag_print_usage(
     flag_t* const end = flags + flags_len;
     for (; iter != end; ++iter) {
         if (iter->short_identifier && iter->long_identifier) {
-            fprintf(stream, "-%c/--%s\t\t%s\n", iter->short_identifier,
+            fprintf(stream, "-%c/--%s\r\t\t\t%s\n", iter->short_identifier,
                 iter->long_identifier, iter->description);
         } else if (iter->short_identifier) {
-            fprintf(stream, "-%c\t\t%s\n", iter->short_identifier,
+            fprintf(stream, "-%c\r\t\t\t%s\n", iter->short_identifier,
                 iter->description);
         } else {
-            fprintf(stream, "--%s\t\t%s\n", iter->long_identifier,
+            fprintf(stream, "--%s\r\t\t\t%s\n", iter->long_identifier,
                 iter->description);
         }
     }
